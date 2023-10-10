@@ -1,0 +1,63 @@
+org: acaps
+app: sophia
+service: sophia
+
+frameworkVersion: '3'
+useDotenv: true
+
+provider:
+  name: aws
+  runtime: python3.10
+  region: eu-central-1
+
+plugins:
+   - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+     dockerizePip: non-linux
+
+package:
+  exclude:
+    - node_modules/**
+    - .venv/**
+
+functions:
+  pdf_processor_h:
+    handler: routers/pdf_processor.run
+    events:
+      - sqs:
+          arn: ${env:SQS_PDF_ARN}
+          batchSize: 1
+
+  meta_data_processor_h:
+    handler: routers/meta_data_processor.run
+    events:
+      - sqs:
+          arn: ${env:SQS_METADATA_ARN}
+          batchSize: 1
+
+  relief_web_scrubber_h:
+    handler: routers/relief_web_scrubber.run
+    events:
+      - schedule: cron(0 20 ? * MON-SUN *)
+
+  air_table_updater_h:
+    handler: routers/air_table_updater.run
+    events:
+      - schedule: cron(0 0 ? * MON-SUN *)
+
+  create_ml_endpoint_h:
+    handler: routers/create_ml_endpoint.run
+    events:
+      - schedule: cron(30 19 ? * MON-SUN *)
+
+  delete_ml_endpoint_h:
+    handler: routers/delete_ml_endpoint.run
+    events:
+      - schedule: cron(0 0 ? * MON-SUN *)
+
+  task_maker_h:
+    handler: routers/task_maker.run
+    events:
+      - sqs: ${env:SQS_TASK_MAKER_ARN}
